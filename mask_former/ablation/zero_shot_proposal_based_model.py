@@ -43,7 +43,6 @@ class ZeroShotProposalBasedSegmentor(nn.Module):
 
     @classmethod
     def from_config(cls, cfg):
-        init_kwargs = {}
         prompt_learner = build_prompt_learner(cfg.MODEL.CLIP_ADAPTER)
         clip_adapter = MaskFormerClipAdapter(
             cfg.MODEL.CLIP_ADAPTER.CLIP_MODEL_NAME,
@@ -54,13 +53,11 @@ class ZeroShotProposalBasedSegmentor(nn.Module):
             mask_matting=cfg.MODEL.CLIP_ADAPTER.MASK_MATTING,
             region_resized=cfg.MODEL.CLIP_ADAPTER.REGION_RESIZED,
         )
-        init_kwargs["clip_adapter"] = clip_adapter
-        init_kwargs["clip_ensemble"] = cfg.MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE
-        init_kwargs[
-            "clip_ensemble_weight"
-        ] = cfg.MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE_WEIGHT
-
-        return init_kwargs
+        return {
+            "clip_adapter": clip_adapter,
+            "clip_ensemble": cfg.MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE,
+            "clip_ensemble_weight": cfg.MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE_WEIGHT,
+        }
 
     def forward(self, batched_inputs):
         """
@@ -96,25 +93,24 @@ class ZeroShotProposalBasedSegmentor(nn.Module):
         class_names = self.get_class_name_list(dataset_name)
         if self.training:
             raise NotImplementedError()
-        else:
-            processed_results = []
-            for input_per_image, image_size in zip(batched_inputs, images.image_sizes):
-                height = image_size[0]
-                width = image_size[1]
+        processed_results = []
+        for input_per_image, image_size in zip(batched_inputs, images.image_sizes):
+            height = image_size[0]
+            width = image_size[1]
 
-                image = input_per_image["image"].to(self.device)
-                height = input_per_image.get("height", image_size[0])
-                width = input_per_image.get("width", image_size[1])
-                image = sem_seg_postprocess(image, image_size, height, width)
-                # semantic segmentation inference
-                mask_proposals = self.load_mask_proposals(
-                    os.path.basename(input_per_image["file_name"])
-                )
-                r = self.semantic_inference(
-                    mask_proposals, image, class_names, dataset_name
-                )
-                processed_results.append({"sem_seg": r})
-            return processed_results
+            image = input_per_image["image"].to(self.device)
+            height = input_per_image.get("height", image_size[0])
+            width = input_per_image.get("width", image_size[1])
+            image = sem_seg_postprocess(image, image_size, height, width)
+            # semantic segmentation inference
+            mask_proposals = self.load_mask_proposals(
+                os.path.basename(input_per_image["file_name"])
+            )
+            r = self.semantic_inference(
+                mask_proposals, image, class_names, dataset_name
+            )
+            processed_results.append({"sem_seg": r})
+        return processed_results
 
     def semantic_inference(self, mask_pred, image, class_names, dataset_name):
         # get the classification result from clip model
@@ -124,19 +120,15 @@ class ZeroShotProposalBasedSegmentor(nn.Module):
         # softmax before index or after?
         clip_cls = F.softmax(clip_cls[:, :-1], dim=-1)
         mask_pred = mask_pred[valid_flag]
-        semseg = torch.einsum("qc,qhw->chw", clip_cls, mask_pred)
-        return semseg
+        return torch.einsum("qc,qhw->chw", clip_cls, mask_pred)
 
     def get_class_name_list(self, dataset_name):
-        class_names = [
-            c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes
-        ]
-        return class_names
+        return [c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes]
 
     def load_mask_proposals(self, image_filename):
         file_name = ".".join(image_filename.split(".")[:-1])
         proposals = torch.from_numpy(
-            np.load(os.path.join(self.proposal_dir, file_name + ".npy"))
+            np.load(os.path.join(self.proposal_dir, f"{file_name}.npy"))
         ).to(self.device)
         proposals = F.one_hot(proposals).permute(2, 0, 1)
         return proposals

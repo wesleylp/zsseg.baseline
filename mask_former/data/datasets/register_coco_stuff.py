@@ -182,13 +182,13 @@ COCO_CATEGORIES = [
 
 COCO_BASE_CATEGORIES = [
     c
-    for i, c in enumerate(COCO_CATEGORIES)
+    for c in COCO_CATEGORIES
     if c["id"] - 1
     not in [20, 24, 32, 33, 40, 56, 86, 99, 105, 123, 144, 147, 148, 168, 171]
 ]
 COCO_NOVEL_CATEGORIES = [
     c
-    for i, c in enumerate(COCO_CATEGORIES)
+    for c in COCO_CATEGORIES
     if c["id"] - 1
     in [20, 24, 32, 33, 40, 56, 86, 99, 105, 123, 144, 147, 148, 168, 171]
 ]
@@ -204,11 +204,10 @@ def _get_coco_stuff_meta(cat_list):
     stuff_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(stuff_ids)}
     stuff_classes = [k["name"] for k in cat_list]
 
-    ret = {
+    return {
         "stuff_dataset_id_to_contiguous_id": stuff_dataset_id_to_contiguous_id,
         "stuff_classes": stuff_classes,
     }
-    return ret
 
 
 def register_all_coco_stuff_10k(root):
@@ -283,19 +282,20 @@ def register_all_coco_stuff_164k(root):
         )
         # classification
         DatasetCatalog.register(
-            all_name + "_classification",
+            f"{all_name}_classification",
             lambda x=image_dir, y=gt_dir: load_binary_mask(
                 y, x, gt_ext="png", image_ext="jpg"
             ),
         )
-        MetadataCatalog.get(all_name + "_classification").set(
+        MetadataCatalog.get(f"{all_name}_classification").set(
             image_root=image_dir,
             sem_seg_root=gt_dir,
             evaluator_type="classification",
             ignore_label=255,
             evaluation_set={
                 "base": [
-                    meta["stuff_classes"].index(n) for n in base_meta["stuff_classes"]
+                    meta["stuff_classes"].index(n)
+                    for n in base_meta["stuff_classes"]
                 ],
             },
             trainable_flag=[
@@ -307,7 +307,7 @@ def register_all_coco_stuff_164k(root):
 
         # zero shot
         image_dir = os.path.join(root, image_dirname)
-        gt_dir = os.path.join(root, sem_seg_dirname + "_base")
+        gt_dir = os.path.join(root, f"{sem_seg_dirname}_base")
         base_name = f"coco_2017_{name}_stuff_base_sem_seg"
 
         DatasetCatalog.register(
@@ -325,12 +325,12 @@ def register_all_coco_stuff_164k(root):
         )
         # classification
         DatasetCatalog.register(
-            base_name + "_classification",
+            f"{base_name}_classification",
             lambda x=image_dir, y=gt_dir: load_binary_mask(
                 y, x, gt_ext="png", image_ext="jpg"
             ),
         )
-        MetadataCatalog.get(base_name + "_classification").set(
+        MetadataCatalog.get(f"{base_name}_classification").set(
             image_root=image_dir,
             sem_seg_root=gt_dir,
             evaluator_type="classification",
@@ -339,7 +339,7 @@ def register_all_coco_stuff_164k(root):
         )
         # zero shot
         image_dir = os.path.join(root, image_dirname)
-        gt_dir = os.path.join(root, sem_seg_dirname + "_novel")
+        gt_dir = os.path.join(root, f"{sem_seg_dirname}_novel")
         novel_name = f"coco_2017_{name}_stuff_novel_sem_seg"
         DatasetCatalog.register(
             novel_name,

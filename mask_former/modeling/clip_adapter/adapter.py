@@ -27,20 +27,14 @@ class ClipAdapter(nn.Module):
     def _get_text_features(self, noun_list: List[str]):
         if not self.prompt_learner.with_trainable_params:
 
-            left_noun_list = [
+            if left_noun_list := [
                 noun for noun in noun_list if noun not in self.text_feature_buffer
-            ]
-            if len(left_noun_list) > 0:
+            ]:
                 left_text_features = self.prompt_learner(
                     left_noun_list, self.clip_model
                 )
                 self.text_feature_buffer.update(
-                    {
-                        noun: text_feature
-                        for noun, text_feature in zip(
-                            left_noun_list, left_text_features
-                        )
-                    }
+                    dict(zip(left_noun_list, left_text_features))
                 )
             return torch.stack([self.text_feature_buffer[noun] for noun in noun_list])
         else:
@@ -99,9 +93,7 @@ class MaskFormerClipAdapter(ClipAdapter):
         elif self.mask_fill == "mean":
             self.mask_fill = [255.0 * c for c in CLIP.PIXEL_MEAN]
         else:
-            raise NotImplementedError(
-                "Unknown mask_fill method: {}".format(self.mask_fill)
-            )
+            raise NotImplementedError(f"Unknown mask_fill method: {self.mask_fill}")
         self.mask_expand_ratio = mask_expand_ratio
         self.mask_thr = mask_thr
         self.mask_matting = mask_matting
@@ -147,9 +139,7 @@ class MaskFormerClipAdapter(ClipAdapter):
         bin_mask = mask > self.mask_thr
         valid = bin_mask.sum(dim=(-1, -2)) > 0
         bin_mask = bin_mask[valid]
-        mask = mask[valid]
-        if not self.mask_matting:
-            mask = bin_mask
+        mask = bin_mask if not self.mask_matting else mask[valid]
         bin_mask = BitMasks(bin_mask)
         bboxes = bin_mask.get_bounding_boxes()
         # crop,mask
@@ -163,7 +153,7 @@ class MaskFormerClipAdapter(ClipAdapter):
             )[None, ...]
             for bbox, single_mask in zip(bboxes, mask)
         ]
-        if len(regions) == 0:
+        if not regions:
             return None, valid
         if normalize:
             regions = [(r - self.pixel_mean) / self.pixel_std for r in regions]

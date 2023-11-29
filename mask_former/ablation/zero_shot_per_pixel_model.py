@@ -35,12 +35,10 @@ class ZeroShotPerPixelModel(SemanticSegmentor):
         super(ZeroShotPerPixelModel, self).__init__(**kwargs)
         self.clip_adapter = clip_adapter
         self.clip_ensemble_weight = clip_ensemble_weight
-        # for debug
-        names = []
-        for name, param in self.named_parameters():
-            if param.requires_grad:
-                names.append(name)
-        while len(names) > 0:
+        names = [
+            name for name, param in self.named_parameters() if param.requires_grad
+        ]
+        while names:
             if len(names) > 20:
                 log_first_n(logging.INFO, names[:20], n=100)
                 names = names[20:]
@@ -170,7 +168,4 @@ class ZeroShotPerPixelModel(SemanticSegmentor):
         return processed_results
 
     def get_class_name_list(self, dataset_name):
-        class_names = [
-            c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes
-        ]
-        return class_names
+        return [c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes]

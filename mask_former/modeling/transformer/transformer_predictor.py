@@ -90,26 +90,22 @@ class TransformerPredictor(nn.Module):
 
     @classmethod
     def from_config(cls, cfg, in_channels, mask_classification):
-        ret = {}
-        ret["in_channels"] = in_channels
-        ret["mask_classification"] = mask_classification
-
-        ret["num_classes"] = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
-        ret["hidden_dim"] = cfg.MODEL.MASK_FORMER.HIDDEN_DIM
-        ret["num_queries"] = cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES
-        # Transformer parameters:
-        ret["nheads"] = cfg.MODEL.MASK_FORMER.NHEADS
-        ret["dropout"] = cfg.MODEL.MASK_FORMER.DROPOUT
-        ret["dim_feedforward"] = cfg.MODEL.MASK_FORMER.DIM_FEEDFORWARD
-        ret["enc_layers"] = cfg.MODEL.MASK_FORMER.ENC_LAYERS
-        ret["dec_layers"] = cfg.MODEL.MASK_FORMER.DEC_LAYERS
-        ret["pre_norm"] = cfg.MODEL.MASK_FORMER.PRE_NORM
-        ret["deep_supervision"] = cfg.MODEL.MASK_FORMER.DEEP_SUPERVISION
-        ret["enforce_input_project"] = cfg.MODEL.MASK_FORMER.ENFORCE_INPUT_PROJ
-
-        ret["mask_dim"] = cfg.MODEL.SEM_SEG_HEAD.MASK_DIM
-
-        return ret
+        return {
+            "in_channels": in_channels,
+            "mask_classification": mask_classification,
+            "num_classes": cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES,
+            "hidden_dim": cfg.MODEL.MASK_FORMER.HIDDEN_DIM,
+            "num_queries": cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES,
+            "nheads": cfg.MODEL.MASK_FORMER.NHEADS,
+            "dropout": cfg.MODEL.MASK_FORMER.DROPOUT,
+            "dim_feedforward": cfg.MODEL.MASK_FORMER.DIM_FEEDFORWARD,
+            "enc_layers": cfg.MODEL.MASK_FORMER.ENC_LAYERS,
+            "dec_layers": cfg.MODEL.MASK_FORMER.DEC_LAYERS,
+            "pre_norm": cfg.MODEL.MASK_FORMER.PRE_NORM,
+            "deep_supervision": cfg.MODEL.MASK_FORMER.DEEP_SUPERVISION,
+            "enforce_input_project": cfg.MODEL.MASK_FORMER.ENFORCE_INPUT_PROJ,
+            "mask_dim": cfg.MODEL.SEM_SEG_HEAD.MASK_DIM,
+        }
 
     def forward(self, x, mask_features):
         pos = self.pe_layer(x)

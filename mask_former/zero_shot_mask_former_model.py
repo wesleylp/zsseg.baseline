@@ -274,14 +274,10 @@ class ZeroShotMaskFormer(MaskFormer):
                 # only clip model predictions are used
                 mask_cls = clip_cls
                 mask_pred = mask_pred[valid_flag]
-        semseg = torch.einsum("qc,qhw->chw", mask_cls, mask_pred)
-        return semseg
+        return torch.einsum("qc,qhw->chw", mask_cls, mask_pred)
 
     def get_class_name_list(self, dataset_name):
-        class_names = [
-            c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes
-        ]
-        return class_names
+        return [c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes]
 
     @property
     def region_clip_adapter(self):

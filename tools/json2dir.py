@@ -40,7 +40,7 @@ def main(json_file, out_dir="pseudo", dataset="coco_2017_train_stuff_sem_seg"):
         }
         for seg in sem_segs
     ]
-    file_names = list(set([v["file_name"] for v in seg_dict]))
+    file_names = list({v["file_name"] for v in seg_dict})
     seg_maps = {k: [] for k in file_names}
     for seg in seg_dict:
         seg_maps[seg["file_name"]].append(seg)
@@ -52,7 +52,7 @@ def main(json_file, out_dir="pseudo", dataset="coco_2017_train_stuff_sem_seg"):
     except:
         full_clsID_to_trID = None
     _func = partial(merge, out_dir=out_dir, full_clsID_to_trID=full_clsID_to_trID)
-    track_parallel_progress(_func, [(k, v) for k, v in seg_maps.items()], 16)
+    track_parallel_progress(_func, list(seg_maps.items()), 16)
 
 
 if __name__ == "__main__":

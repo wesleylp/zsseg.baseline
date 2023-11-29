@@ -56,10 +56,11 @@ def window_partition(x, window_size):
     """
     B, H, W, C = x.shape
     x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)
-    windows = (
-        x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size, window_size, C)
+    return (
+        x.permute(0, 1, 3, 2, 4, 5)
+        .contiguous()
+        .view(-1, window_size, window_size, C)
     )
-    return windows
 
 
 def window_reverse(windows, window_size, H, W):
@@ -180,10 +181,7 @@ class WindowAttention(nn.Module):
                 1
             ).unsqueeze(0)
             attn = attn.view(-1, self.num_heads, N, N)
-            attn = self.softmax(attn)
-        else:
-            attn = self.softmax(attn)
-
+        attn = self.softmax(attn)
         attn = self.attn_drop(attn)
 
         x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
@@ -469,8 +467,8 @@ class BasicLayer(nn.Module):
         )  # nW, window_size, window_size, 1
         mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
         attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-        attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(
-            attn_mask == 0, float(0.0)
+        attn_mask = attn_mask.masked_fill(attn_mask != 0, -100.0).masked_fill(
+            attn_mask == 0, 0.0
         )
 
         for blk in self.blocks:
@@ -479,12 +477,11 @@ class BasicLayer(nn.Module):
                 x = checkpoint.checkpoint(blk, x, attn_mask)
             else:
                 x = blk(x, attn_mask)
-        if self.downsample is not None:
-            x_down = self.downsample(x, H, W)
-            Wh, Ww = (H + 1) // 2, (W + 1) // 2
-            return x, H, W, x_down, Wh, Ww
-        else:
+        if self.downsample is None:
             return x, H, W, x, H, W
+        x_down = self.downsample(x, H, W)
+        Wh, Ww = (H + 1) // 2, (W + 1) // 2
+        return x, H, W, x_down, Wh, Ww
 
 
 class PatchEmbed(nn.Module):
@@ -507,10 +504,7 @@ class PatchEmbed(nn.Module):
         self.proj = nn.Conv2d(
             in_chans, embed_dim, kernel_size=patch_size, stride=patch_size
         )
-        if norm_layer is not None:
-            self.norm = norm_layer(embed_dim)
-        else:
-            self.norm = None
+        self.norm = norm_layer(embed_dim) if norm_layer is not None else None
 
     def forward(self, x):
         """Forward function."""
@@ -724,7 +718,7 @@ class SwinTransformer(nn.Module):
                     .permute(0, 3, 1, 2)
                     .contiguous()
                 )
-                outs["res{}".format(i + 2)] = out
+                outs[f"res{i + 2}"] = out
         if self.projection:
             x_out = self.norm(x_out)
             x_out = x_out.view(-1, H, W, self.num_features[-1]).contiguous()
@@ -810,12 +804,8 @@ class D2SwinTransformer(SwinTransformer, Backbone):
         assert (
             x.dim() == 4
         ), f"SwinTransformer takes an input of shape (N, C, H, W). Got {x.shape} instead!"
-        outputs = {}
         y = super().forward(x)
-        for k in y.keys():
-            if k in self._out_features:
-                outputs[k] = y[k]
-        return outputs
+        return {k: y[k] for k in y.keys() if k in self._out_features}
 
     def output_shape(self):
         return {

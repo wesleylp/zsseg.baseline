@@ -67,7 +67,7 @@ class ClassificationEvaluator(DatasetEvaluator):
             prediction = {}
             if ("classification" in output) and (output["classification"] is not None):
                 prediction["classification"] = output["classification"].cpu()
-            if len(prediction) > 0:
+            if prediction:
                 self._predictions.append(prediction["classification"])
                 if "instances" in input:
                     self._gts.append(input["instances"].gt_classes.cpu())
@@ -146,10 +146,7 @@ class ClassificationEvaluator(DatasetEvaluator):
 
 
 def safe_mean(vec):
-    if len(vec) == 0:
-        return torch.Tensor([0])
-    else:
-        return vec.mean()
+    return torch.Tensor([0]) if len(vec) == 0 else vec.mean()
 
 
 def accuracy(output: torch.Tensor, target: torch.Tensor, topk=(1,)):

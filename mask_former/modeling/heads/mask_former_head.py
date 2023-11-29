@@ -37,9 +37,9 @@ class MaskFormerHead(nn.Module):
             logger = logging.getLogger(__name__)
             for k in list(state_dict.keys()):
                 newk = k
-                if "sem_seg_head" in k and not k.startswith(prefix + "predictor"):
-                    newk = k.replace(prefix, prefix + "pixel_decoder.")
-                    # logger.debug(f"{k} ==> {newk}")
+                if "sem_seg_head" in k and not k.startswith(f"{prefix}predictor"):
+                    newk = k.replace(prefix, f"{prefix}pixel_decoder.")
+                                # logger.debug(f"{k} ==> {newk}")
                 if newk != k:
                     state_dict[newk] = state_dict[k]
                     del state_dict[k]
@@ -121,13 +121,11 @@ class MaskFormerHead(nn.Module):
             mask_features,
             transformer_encoder_features,
         ) = self.pixel_decoder.forward_features(features)
-        if self.transformer_in_feature == "transformer_encoder":
-            assert (
-                transformer_encoder_features is not None
-            ), "Please use the TransformerEncoderPixelDecoder."
-            predictions = self.predictor(transformer_encoder_features, mask_features)
-        else:
-            predictions = self.predictor(
+        if self.transformer_in_feature != "transformer_encoder":
+            return self.predictor(
                 features[self.transformer_in_feature], mask_features
             )
-        return predictions
+        assert (
+            transformer_encoder_features is not None
+        ), "Please use the TransformerEncoderPixelDecoder."
+        return self.predictor(transformer_encoder_features, mask_features)

@@ -66,12 +66,11 @@ class ProposalClasificationDatasetMapper(DatasetMapper):
             augs.append(T.ResizeShortestEdge(min_size, sample_style="choice"))
             augs.append(CenterCrop(min_size, seg_ignore_label=0))
 
-        ret = {
+        return {
             "is_train": is_train,
             "augmentations": augs,
             "image_format": cfg.INPUT.FORMAT,
         }
-        return ret
 
     def __call__(self, dataset_dict):
         """

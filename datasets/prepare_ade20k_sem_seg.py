@@ -15,7 +15,7 @@ def convert(input, output, index=None):
     img = img - 1  # 0 (ignore) becomes 255. others are shifted by 1
     if index is not None:
         mapping = {i: k for k, i in enumerate(index)}
-        img = np.vectorize(lambda x: mapping[x] if x in mapping else 255)(
+        img = np.vectorize(lambda x: mapping.get(x, 255))(
             img.astype(np.float)
         ).astype(np.uint8)
     Image.fromarray(img).save(output)

@@ -187,7 +187,7 @@ full_clsID_to_trID = {
 }
 
 novel_clsID = [20, 24, 32, 33, 40, 56, 86, 99, 105, 123, 144, 147, 148, 168, 171]
-base_clsID = [k for k in full_clsID_to_trID.keys() if k not in novel_clsID + [255]]
+base_clsID = [k for k in full_clsID_to_trID if k not in novel_clsID + [255]]
 novel_clsID_to_trID = {k: i for i, k in enumerate(novel_clsID)}
 base_clsID_to_trID = {k: i for i, k in enumerate(base_clsID)}
 
@@ -200,9 +200,9 @@ def convert_to_trainID(
     for clsID, trID in clsID_to_trID.items():
         mask_copy[mask == clsID] = trID
     seg_filename = (
-        osp.join(out_mask_dir, "train2017" + suffix, osp.basename(maskpath))
+        osp.join(out_mask_dir, f"train2017{suffix}", osp.basename(maskpath))
         if is_train
-        else osp.join(out_mask_dir, "val2017" + suffix, osp.basename(maskpath))
+        else osp.join(out_mask_dir, f"val2017{suffix}", osp.basename(maskpath))
     )
     if len(np.unique(mask_copy)) == 1 and np.unique(mask_copy)[0] == 255:
         return
@@ -216,8 +216,7 @@ def parse_args():
     parser.add_argument("coco_path", help="coco stuff path")
     parser.add_argument("-o", "--out_dir", help="output path")
     parser.add_argument("--nproc", default=16, type=int, help="number of process")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -242,9 +241,7 @@ def main():
     test_list = glob(osp.join(coco_path, "stuffthingmaps", "val2017", "*.png"))
     assert (
         len(train_list) + len(test_list)
-    ) == COCO_LEN, "Wrong length of list {} & {}".format(
-        len(train_list), len(test_list)
-    )
+    ) == COCO_LEN, f"Wrong length of list {len(train_list)} & {len(test_list)}"
 
     if args.nproc > 1:
         mmcv.track_parallel_progress(

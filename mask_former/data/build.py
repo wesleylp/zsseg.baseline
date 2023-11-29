@@ -61,9 +61,7 @@ def print_classification_instances_class_histogram(dataset_dicts, class_names):
 
     def short_name(x):
         # make long class names shorter. useful for lvis
-        if len(x) > 13:
-            return x[:11] + ".."
-        return x
+        return f"{x[:11]}.." if len(x) > 13 else x
 
     data = list(
         itertools.chain(
@@ -92,8 +90,8 @@ def print_classification_instances_class_histogram(dataset_dicts, class_names):
 
 def wrap_metas(dataset_dict, **kwargs):
     def _assign_attr(data_dict: dict, **kwargs):
-        assert not any(
-            [key in data_dict for key in kwargs]
+        assert all(
+            key not in data_dict for key in kwargs
         ), "Assigned attributes should not exist in the original sample."
         data_dict.update(kwargs)
         return data_dict
@@ -126,7 +124,7 @@ def get_detection_dataset_dicts(
         for dataset_name in names
     ]
     for dataset_name, dicts in zip(names, dataset_dicts):
-        assert len(dicts), "Dataset '{}' is empty!".format(dataset_name)
+        assert len(dicts), f"Dataset '{dataset_name}' is empty!"
 
     if proposal_files is not None:
         assert len(names) == len(proposal_files)
@@ -152,7 +150,7 @@ def get_detection_dataset_dicts(
         except AttributeError:  # class names are not available for this dataset
             pass
 
-    assert len(dataset_dicts), "No valid data found in {}.".format(",".join(names))
+    assert len(dataset_dicts), f'No valid data found in {",".join(names)}.'
     return dataset_dicts
 
 
@@ -168,7 +166,7 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
             if cfg.MODEL.LOAD_PROPOSALS
             else None,
         )
-        _log_api_usage("dataset." + cfg.DATASETS.TRAIN[0])
+        _log_api_usage(f"dataset.{cfg.DATASETS.TRAIN[0]}")
 
     if mapper is None:
         mapper = DatasetMapper(cfg, True)
@@ -176,7 +174,7 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
     if sampler is None:
         sampler_name = cfg.DATALOADER.SAMPLER_TRAIN
         logger = logging.getLogger(__name__)
-        logger.info("Using training sampler {}".format(sampler_name))
+        logger.info(f"Using training sampler {sampler_name}")
         if sampler_name == "TrainingSampler":
             sampler = TrainingSampler(len(dataset))
         elif sampler_name == "RepeatFactorTrainingSampler":
@@ -191,7 +189,7 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
                 len(dataset), cfg.DATALOADER.RANDOM_SUBSET_RATIO
             )
         else:
-            raise ValueError("Unknown training sampler: {}".format(sampler_name))
+            raise ValueError(f"Unknown training sampler: {sampler_name}")
 
     return {
         "dataset": dataset,
@@ -331,13 +329,12 @@ def build_detection_test_loader(
     batch_sampler = torch.utils.data.sampler.BatchSampler(
         sampler, samples_per_gpu, drop_last=False
     )
-    data_loader = torch.utils.data.DataLoader(
+    return torch.utils.data.DataLoader(
         dataset,
         num_workers=num_workers,
         batch_sampler=batch_sampler,
         collate_fn=trivial_batch_collator,
     )
-    return data_loader
 
 
 def dataset_sample_per_class(cfg):
@@ -356,7 +353,7 @@ def dataset_sample_per_class(cfg):
         category_count = Counter(category_list)
         category_group = {
             cat: [data for data in dataset_dicts if data["category_id"] == cat]
-            for cat in category_count.keys()
+            for cat in category_count
         }
         rng = np.random.default_rng(cfg.DATASETS.SAMPLE_SEED)
         selected = {
@@ -366,7 +363,7 @@ def dataset_sample_per_class(cfg):
             for cat, groups in category_group.items()
         }
         tmp = []
-        for k, v in selected.items():
+        for v in selected.values():
             tmp.extend(v)
         dataset_dicts = tmp
         logger = logging.getLogger(__name__)

@@ -35,10 +35,9 @@ NOVEL_CLASS_NAMES = [c for i, c in enumerate(CLASS_NAMES) if i in [15, 16, 17, 1
 
 
 def _get_voc_meta(cat_list):
-    ret = {
+    return {
         "stuff_classes": cat_list,
     }
-    return ret
 
 
 def register_all_voc_11k(root):
@@ -81,19 +80,20 @@ def register_all_voc_11k(root):
         )
         # classification
         DatasetCatalog.register(
-            all_name + "_classification",
+            f"{all_name}_classification",
             lambda x=image_dir, y=gt_dir: load_binary_mask(
                 y, x, gt_ext="png", image_ext="jpg"
             ),
         )
-        MetadataCatalog.get(all_name + "_classification").set(
+        MetadataCatalog.get(f"{all_name}_classification").set(
             image_root=image_dir,
             sem_seg_root=gt_dir,
             evaluator_type="classification",
             ignore_label=255,
             evaluation_set={
                 "base": [
-                    meta["stuff_classes"].index(n) for n in base_meta["stuff_classes"]
+                    meta["stuff_classes"].index(n)
+                    for n in base_meta["stuff_classes"]
                 ],
             },
             trainable_flag=[
@@ -104,7 +104,7 @@ def register_all_voc_11k(root):
         )
         # zero shot
         image_dir = os.path.join(root, image_dirname)
-        gt_dir = os.path.join(root, sem_seg_dirname + "_base")
+        gt_dir = os.path.join(root, f"{sem_seg_dirname}_base")
         base_name = f"voc_base_sem_seg_{name}"
 
         DatasetCatalog.register(
@@ -122,12 +122,12 @@ def register_all_voc_11k(root):
         )
         # classification
         DatasetCatalog.register(
-            base_name + "_classification",
+            f"{base_name}_classification",
             lambda x=image_dir, y=gt_dir: load_binary_mask(
                 y, x, gt_ext="png", image_ext="jpg"
             ),
         )
-        MetadataCatalog.get(base_name + "_classification").set(
+        MetadataCatalog.get(f"{base_name}_classification").set(
             image_root=image_dir,
             sem_seg_root=gt_dir,
             evaluator_type="classification",
@@ -136,7 +136,7 @@ def register_all_voc_11k(root):
         )
         # zero shot
         image_dir = os.path.join(root, image_dirname)
-        gt_dir = os.path.join(root, sem_seg_dirname + "_novel")
+        gt_dir = os.path.join(root, f"{sem_seg_dirname}_novel")
         novel_name = f"voc_novel_sem_seg_{name}"
         DatasetCatalog.register(
             novel_name,

@@ -23,8 +23,7 @@ def batch_dice_loss(inputs, targets):
     inputs = inputs.flatten(1)
     numerator = 2 * torch.einsum("nc,mc->nm", inputs, targets)
     denominator = inputs.sum(-1)[:, None] + targets.sum(-1)[None, :]
-    loss = 1 - (numerator + 1) / (denominator + 1)
-    return loss
+    return 1 - (numerator + 1) / (denominator + 1)
 
 
 def batch_sigmoid_focal_loss(inputs, targets, alpha: float = 0.25, gamma: float = 2):
@@ -96,8 +95,8 @@ class HungarianMatcher(nn.Module):
 
         # Work out the mask padding size
         masks = [v["masks"] for v in targets]
-        h_max = max([m.shape[1] for m in masks])
-        w_max = max([m.shape[2] for m in masks])
+        h_max = max(m.shape[1] for m in masks)
+        w_max = max(m.shape[2] for m in masks)
 
         indices = []
 
@@ -174,11 +173,11 @@ class HungarianMatcher(nn.Module):
         return self.memory_efficient_forward(outputs, targets)
 
     def __repr__(self):
-        head = "Matcher " + self.__class__.__name__
+        head = f"Matcher {self.__class__.__name__}"
         body = [
-            "cost_class: {}".format(self.cost_class),
-            "cost_mask: {}".format(self.cost_mask),
-            "cost_dice: {}".format(self.cost_dice),
+            f"cost_class: {self.cost_class}",
+            f"cost_mask: {self.cost_mask}",
+            f"cost_dice: {self.cost_dice}",
         ]
         _repr_indent = 4
         lines = [head] + [" " * _repr_indent + line for line in body]

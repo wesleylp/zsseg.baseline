@@ -114,7 +114,7 @@ class OracleMaskFormer(nn.Module):
             dec_layers = cfg.MODEL.MASK_FORMER.DEC_LAYERS
             aux_weight_dict = {}
             for i in range(dec_layers - 1):
-                aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
+                aux_weight_dict.update({f"{k}_{i}": v for k, v in weight_dict.items()})
             weight_dict.update(aux_weight_dict)
 
         losses = ["labels", "masks"]
@@ -263,20 +263,18 @@ class OracleMaskFormer(nn.Module):
         mask_pred = mask_pred.sigmoid()
         mask_cls = mask_cls.softmax(dim=-1)[..., :-1]
         proposals = mask_pred > 0.5
-        iou_mat = []
         gt_masks = gt_instances.gt_masks.to(self.device)
-        for i in range(len(proposals)):
-            iou_mat.append(
-                compute_iou(
-                    proposals[i : i + 1].int(),
-                    gt_masks.int(),
-                )
-            )  # m,n
+        iou_mat = [
+            compute_iou(
+                proposals[i : i + 1].int(),
+                gt_masks.int(),
+            )
+            for i in range(len(proposals))
+        ]
         iou_mat = torch.cat(iou_mat)  # n,w
         all_iou_mat = iou_mat.new_zeros(iou_mat.shape[0], self.criterion.num_classes)
         for i, l in enumerate(gt_instances.gt_classes):
             all_iou_mat[:, l] = iou_mat[:, i]
 
         mask_cls = F.normalize(all_iou_mat, p=1, dim=-1)
-        semseg = torch.einsum("qc,qhw->chw", mask_cls, mask_pred)
-        return semseg
+        return torch.einsum("qc,qhw->chw", mask_cls, mask_pred)
