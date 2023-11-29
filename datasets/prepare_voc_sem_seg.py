@@ -36,7 +36,7 @@ full_clsID_to_trID = {
 }
 
 novel_clsID = [16, 17, 18, 19, 20]
-base_clsID = [k for k in full_clsID_to_trID.keys() if k not in novel_clsID + [0, 255]]
+base_clsID = [k for k in full_clsID_to_trID if k not in novel_clsID + [0, 255]]
 novel_clsID_to_trID = {k: i for i, k in enumerate(novel_clsID)}
 base_clsID_to_trID = {k: i for i, k in enumerate(base_clsID)}
 
@@ -49,9 +49,9 @@ def convert_to_trainID(
     for clsID, trID in clsID_to_trID.items():
         mask_copy[mask == clsID] = trID
     seg_filename = (
-        osp.join(out_mask_dir, "train" + suffix, osp.basename(maskpath))
+        osp.join(out_mask_dir, f"train{suffix}", osp.basename(maskpath))
         if is_train
-        else osp.join(out_mask_dir, "val" + suffix, osp.basename(maskpath))
+        else osp.join(out_mask_dir, f"val{suffix}", osp.basename(maskpath))
     )
     if len(np.unique(mask_copy)) == 1 and np.unique(mask_copy)[0] == 255:
         return
@@ -65,8 +65,7 @@ def parse_args():
     parser.add_argument("voc_path", help="voc path")
     parser.add_argument("-o", "--out_dir", help="output path")
     parser.add_argument("--nproc", default=16, type=int, help="number of process")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -93,12 +92,16 @@ def main():
             os.makedirs(osp.join(out_image_dir, dir_name), exist_ok=True)
 
     train_list = [
-        osp.join(voc_path, "SegmentationClassAug", f + ".png")
-        for f in np.loadtxt(osp.join(voc_path, "train.txt"), dtype=np.str).tolist()
+        osp.join(voc_path, "SegmentationClassAug", f"{f}.png")
+        for f in np.loadtxt(
+            osp.join(voc_path, "train.txt"), dtype=np.str
+        ).tolist()
     ]
     test_list = [
-        osp.join(voc_path, "SegmentationClassAug", f + ".png")
-        for f in np.loadtxt(osp.join(voc_path, "val.txt"), dtype=np.str).tolist()
+        osp.join(voc_path, "SegmentationClassAug", f"{f}.png")
+        for f in np.loadtxt(
+            osp.join(voc_path, "val.txt"), dtype=np.str
+        ).tolist()
     ]
 
     if args.nproc > 1:

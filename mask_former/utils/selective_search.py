@@ -18,33 +18,30 @@ def initial_regions(image, scale):
 
 # A color histogram of 25 bins is calculated for each channel of the image
 def color_hist(reg_mask, bins=25, lower_range=0.0, upper_range=255.0):
-    # reg_mask.shape = (region size, channels)
-    hist = []
-    for channel in np.arange(reg_mask.shape[1]):
-        hist.append(
-            np.histogram(reg_mask[:, channel], bins, (lower_range, upper_range))[0]
-        )
+    hist = [
+        np.histogram(reg_mask[:, channel], bins, (lower_range, upper_range))[0]
+        for channel in np.arange(reg_mask.shape[1])
+    ]
     hist = np.concatenate(hist, axis=0)
     hist_norm = normalize(hist.reshape(1, -1), norm="l1")
     return hist_norm.ravel()
 
 
 def texture_descriptor(img):
-    # we use LBP (local binary pattern)
-    # LBP is an invariant descriptor that can be used for texture classification
-    text_img = []
-    for channel in np.arange(img.shape[2]):
-        text_img.append(local_binary_pattern(img[:, :, channel], 24, 3))
+    text_img = [
+        local_binary_pattern(img[:, :, channel], 24, 3)
+        for channel in np.arange(img.shape[2])
+    ]
     return np.stack(text_img, axis=2)
 
 
 def texture_hist(text_reg_mask, bins=80, lower_range=0.0, upper_range=255.0):
-    # text_reg_mask.shape = (region size, channels)
-    hist = []
-    for channel in np.arange(text_reg_mask.shape[1]):
-        hist.append(
-            np.histogram(text_reg_mask[:, channel], bins, (lower_range, upper_range))[0]
-        )
+    hist = [
+        np.histogram(
+            text_reg_mask[:, channel], bins, (lower_range, upper_range)
+        )[0]
+        for channel in np.arange(text_reg_mask.shape[1])
+    ]
     hist = np.concatenate(hist, axis=0)
     hist_norm = normalize(hist.reshape(1, -1), norm="l1")
     return hist_norm.ravel()
@@ -113,9 +110,7 @@ def find_neighbours(reg_bb, label):
     mask[np.where(mask_dilated == False)] = reg_bb[np.where(mask_dilated == False)]
     mask[np.where(mask_dilated == True)] = label
     dif = abs(mask - reg_bb)
-    neig = np.unique(reg_bb[np.where(dif != 0)]).tolist()
-
-    return neig
+    return np.unique(reg_bb[np.where(dif != 0)]).tolist()
 
 
 def extract_neighbors(img_and_seg, regions):
@@ -155,13 +150,13 @@ def sim_size(r1, r2, img_size):
 def sim_color(r1, r2):
     hist_r1 = r1["col_hist"]
     hist_r2 = r2["col_hist"]
-    return sum([min(a, b) for a, b in zip(hist_r1, hist_r2)])
+    return sum(min(a, b) for a, b in zip(hist_r1, hist_r2))
 
 
 def sim_texture(r1, r2):
     hist_r1 = r1["text_hist"]
     hist_r2 = r2["text_hist"]
-    return sum([min(a, b) for a, b in zip(hist_r1, hist_r2)])
+    return sum(min(a, b) for a, b in zip(hist_r1, hist_r2))
 
 
 def sim_fill(r1, r2, img_size):
@@ -308,24 +303,23 @@ def selective_search(
 
     # hierarchical grouping algorithm
     under_thres = False
-    while under_thres == False:
+    while not under_thres:
         # get highest similarity
         s = [x["sim"] for x in init_S]
-        if len(s) > 0:
-            max_sim = max(s)
-        else:
-            max_sim = 0
+        max_sim = max(s, default=0)
         if max_sim >= sim_threshold:
             regions = init_S[np.where(s == max_sim)[0][0]]["regions"]
 
             # merge corresponding regions
             img_and_seg, R, N = merge_regions(img_and_seg, regions, R, N)
 
-            # remove similarities
-            del_ind = []
-            for i, r in enumerate(init_S):
-                if any([regions[0] in r["regions"], regions[1] in r["regions"]]):
-                    del_ind.append(i)
+            del_ind = [
+                i
+                for i, r in enumerate(init_S)
+                if any(
+                    [regions[0] in r["regions"], regions[1] in r["regions"]]
+                )
+            ]
             init_S = np.delete(init_S, del_ind).tolist()
 
             # calculate similarity set between rt and its neighbours

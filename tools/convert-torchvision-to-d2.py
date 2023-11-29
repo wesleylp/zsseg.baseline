@@ -36,11 +36,11 @@ if __name__ == "__main__":
     for k in list(obj.keys()):
         old_k = k
         if "layer" not in k:
-            k = "stem." + k
+            k = f"stem.{k}"
         for t in [1, 2, 3, 4]:
-            k = k.replace("layer{}".format(t), "res{}".format(t + 1))
+            k = k.replace(f"layer{t}", f"res{t + 1}")
         for t in [1, 2, 3]:
-            k = k.replace("bn{}".format(t), "conv{}.norm".format(t))
+            k = k.replace(f"bn{t}", f"conv{t}.norm")
         k = k.replace("downsample.0", "shortcut")
         k = k.replace("downsample.1", "shortcut.norm")
         print(old_k, "->", k)

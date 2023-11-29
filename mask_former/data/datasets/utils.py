@@ -19,7 +19,7 @@ def load_binary_mask(gt_root, image_root, gt_ext="png", image_ext="jpg"):
     }
     ```
     """
-    label_count_file = gt_root + "_label_count.json"
+    label_count_file = f"{gt_root}_label_count.json"
     with open(label_count_file) as f:
         label_count_dict = json.load(f)
 
@@ -35,8 +35,6 @@ def load_binary_mask(gt_root, image_root, gt_ext="png", image_ext="jpg"):
         ]
         flattened_data_dicts.extend(flattened_data)
     logger.info(
-        "Loaded {} images with flattened semantic segmentation from {}".format(
-            len(flattened_data_dicts), image_root
-        )
+        f"Loaded {len(flattened_data_dicts)} images with flattened semantic segmentation from {image_root}"
     )
     return flattened_data_dicts

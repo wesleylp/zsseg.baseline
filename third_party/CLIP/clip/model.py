@@ -97,7 +97,7 @@ class AttentionPool2d(nn.Module):
 
         x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)  # (HW+1)NC
         positional_embedding = self.positional_embedding
-        if not (self.positional_embedding.shape[0] == x.shape[0]):
+        if self.positional_embedding.shape[0] != x.shape[0]:
             cls_pos = positional_embedding[0:1, :]
             per_pos_embedding = (
                 F.interpolate(
@@ -138,10 +138,7 @@ class AttentionPool2d(nn.Module):
             key_padding_mask=mask,
         )
 
-        if return_cls:
-            return x[0]
-        else:
-            return x
+        return x[0] if return_cls else x
 
 
 class ModifiedResNet(nn.Module):
@@ -187,9 +184,7 @@ class ModifiedResNet(nn.Module):
         layers = [Bottleneck(self._inplanes, planes, stride)]
 
         self._inplanes = planes * Bottleneck.expansion
-        for _ in range(1, blocks):
-            layers.append(Bottleneck(self._inplanes, planes))
-
+        layers.extend(Bottleneck(self._inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def forward(self, x, mask: torch.Tensor = None, return_cls=True):
@@ -337,7 +332,7 @@ class VisionTransformer(nn.Module):
             dim=1,
         )  # shape = [*, grid ** 2 + 1, width]
         positional_embedding = self.positional_embedding
-        if not (self.positional_embedding.shape[0] == x.shape[0]):
+        if self.positional_embedding.shape[0] != x.shape[0]:
             cls_pos = positional_embedding[0:1, :]
             if inter_method in ["bicubic", "bilinear"]:
                 per_pos_embedding = (
@@ -370,10 +365,7 @@ class VisionTransformer(nn.Module):
                     dis.append(cur)
                     cur += q ** (i + 1)
                 r_ids = [-_ for _ in reversed(dis)]
-                if self.grid_size % 2 == 0:
-                    y = r_ids + dis
-                else:
-                    y = r_ids + [0] + dis
+                y = r_ids + dis if self.grid_size % 2 == 0 else r_ids + [0] + dis
                 left, right = 1.01, 1.5
                 while right - left > 1e-6:
                     q = (left + right) / 2.0
@@ -388,10 +380,7 @@ class VisionTransformer(nn.Module):
                     dis.append(cur)
                     cur += q ** (i + 1)
                 r_ids = [-_ for _ in reversed(dis)]
-                if self.grid_size % 2 == 0:
-                    x = r_ids + [0] + dis[:-1]
-                else:
-                    x = r_ids + [0] + dis
+                x = r_ids + [0] + dis[:-1] if self.grid_size % 2 == 0 else r_ids + [0] + dis
                 dx = np.arange(-gw // 2, gw / 2, 1.0)
                 dy = np.arange(-gh // 2, gh / 2, 1.0)
                 all_rel_pos_bias = []
@@ -430,11 +419,7 @@ class VisionTransformer(nn.Module):
         x = self.transformer(x, key_padding_mask=mask)
         x = x.permute(1, 0, 2)  # LND -> NLD
 
-        if return_cls:
-            x = self.ln_post(x[:, 0, :])
-        else:
-            x = self.ln_post(x[:, 1:, :])
-
+        x = self.ln_post(x[:, 0, :]) if return_cls else self.ln_post(x[:, 1:, :])
         if self.proj is not None:
             x = x @ self.proj
         if not return_cls:
@@ -621,8 +606,9 @@ def build_model(state_dict: dict):
         vision_layers = len(
             [
                 k
-                for k in state_dict.keys()
-                if k.startswith("visual.") and k.endswith(".attn.in_proj_weight")
+                for k in state_dict
+                if k.startswith("visual.")
+                and k.endswith(".attn.in_proj_weight")
             ]
         )
         vision_patch_size = state_dict["visual.conv1.weight"].shape[-1]
@@ -633,11 +619,11 @@ def build_model(state_dict: dict):
     else:
         counts: list = [
             len(
-                set(
+                {
                     k.split(".")[2]
                     for k in state_dict
                     if k.startswith(f"visual.layer{b}")
-                )
+                }
             )
             for b in [1, 2, 3, 4]
         ]
@@ -659,11 +645,11 @@ def build_model(state_dict: dict):
     transformer_width = state_dict["ln_final.weight"].shape[0]
     transformer_heads = transformer_width // 64
     transformer_layers = len(
-        set(
+        {
             k.split(".")[2]
             for k in state_dict
-            if k.startswith(f"transformer.resblocks")
-        )
+            if k.startswith("transformer.resblocks")
+        }
     )
 
     model = CLIP(

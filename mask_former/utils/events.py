@@ -80,8 +80,8 @@ class WandbWriter(EventWriter):
             for name, scalars in storage.latest().items()
             if scalars[1] > self._last_write
         }
-        if len(stats) > 0:
-            self._last_write = max([v[1] for k, v in storage.latest().items()])
+        if stats:
+            self._last_write = max(v[1] for k, v in storage.latest().items())
 
         # storage.put_{image,histogram} is only meant to be used by
         # tensorboard writer. So we access its internal fields directly from here.
@@ -110,7 +110,7 @@ class WandbWriter(EventWriter):
 
             storage.clear_histograms()
 
-        if len(stats) == 0:
+        if not stats:
             return
         wandb.log(stats, step=storage.iter)
 

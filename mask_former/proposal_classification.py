@@ -36,10 +36,9 @@ class ProposalClipClassifier(nn.Module):
         self.register_buffer(
             "pixel_std", torch.Tensor(CLIP.PIXEL_STD).view(1, -1, 1, 1), False
         )
-        names = []
-        for name, param in self.named_parameters():
-            if param.requires_grad:
-                names.append(name)
+        names = [
+            name for name, param in self.named_parameters() if param.requires_grad
+        ]
         log_first_n(logging.INFO, names)
 
     @classmethod
@@ -61,9 +60,7 @@ class ProposalClipClassifier(nn.Module):
 
         else:
             raise NotImplementedError(
-                "Prompt learner {} is not supported".format(
-                    cfg.MODEL.CLIP_ADAPTER.PROMPT_LEARNER
-                )
+                f"Prompt learner {cfg.MODEL.CLIP_ADAPTER.PROMPT_LEARNER} is not supported"
             )
         clip_adapter = ClipAdapter(
             cfg.MODEL.CLIP_ADAPTER.CLIP_MODEL_NAME, prompt_learner
@@ -106,47 +103,45 @@ class ProposalClipClassifier(nn.Module):
         logits = self.clip_adapter(images, class_names)
         metadata = MetadataCatalog.get(dataset_name)
 
-        if self.training:
-            target = torch.cat([x["instances"].gt_classes for x in batched_inputs])
-            loss_cls = F.cross_entropy(logits, target.to(self.device))
-            storage = get_event_storage()
-            if storage.iter % 100 == 0:
-                vis = Visualizer(
-                    batched_inputs[0]["image"].permute(1, 2, 0).cpu().numpy().copy(),
-                    metadata,
-                )
+        if not self.training:
+            return [{"classification": logit[None].detach()} for logit in logits]
+        target = torch.cat([x["instances"].gt_classes for x in batched_inputs])
+        loss_cls = F.cross_entropy(logits, target.to(self.device))
+        storage = get_event_storage()
+        if storage.iter % 100 == 0:
+            vis = Visualizer(
+                batched_inputs[0]["image"].permute(1, 2, 0).cpu().numpy().copy(),
+                metadata,
+            )
 
-                vis_mask = target.new_ones(batched_inputs[0]["image"].shape[1:]) * 255
-                vis_mask[batched_inputs[0]["instances"].gt_masks[0]] = batched_inputs[
-                    0
-                ]["instances"].gt_classes[0]
-                vis.draw_sem_seg(vis_mask)
-                pvis = Visualizer(
-                    batched_inputs[0]["image"].permute(1, 2, 0).cpu().numpy().copy(),
-                    metadata,
-                )
-                vis_mask = target.new_ones(batched_inputs[0]["image"].shape[1:]) * 255
-                vis_mask[batched_inputs[0]["instances"].gt_masks[0]] = (
-                    logits[0].argmax().detach().cpu()
-                )
-                pvis.draw_sem_seg(vis_mask)
-                storage.put_image(
-                    "train_data",
-                    np.concatenate(
-                        [vis.get_output().get_image(), pvis.get_output().get_image()],
-                        axis=1,
-                    ),
-                )
-                storage.put_scalar(
-                    "train_acc",
-                    100.0
-                    * (logits.detach().argmax(dim=1).cpu() == target).sum()
-                    / len(target),
-                )
-            return {"loss_cls": loss_cls}
-        else:
-            sim = [{"classification": logit[None].detach()} for logit in logits]
-            return sim
+            vis_mask = target.new_ones(batched_inputs[0]["image"].shape[1:]) * 255
+            vis_mask[batched_inputs[0]["instances"].gt_masks[0]] = batched_inputs[
+                0
+            ]["instances"].gt_classes[0]
+            vis.draw_sem_seg(vis_mask)
+            pvis = Visualizer(
+                batched_inputs[0]["image"].permute(1, 2, 0).cpu().numpy().copy(),
+                metadata,
+            )
+            vis_mask = target.new_ones(batched_inputs[0]["image"].shape[1:]) * 255
+            vis_mask[batched_inputs[0]["instances"].gt_masks[0]] = (
+                logits[0].argmax().detach().cpu()
+            )
+            pvis.draw_sem_seg(vis_mask)
+            storage.put_image(
+                "train_data",
+                np.concatenate(
+                    [vis.get_output().get_image(), pvis.get_output().get_image()],
+                    axis=1,
+                ),
+            )
+            storage.put_scalar(
+                "train_acc",
+                100.0
+                * (logits.detach().argmax(dim=1).cpu() == target).sum()
+                / len(target),
+            )
+        return {"loss_cls": loss_cls}
 
     @property
     def device(self):

@@ -37,9 +37,9 @@ class PerPixelBaselineHead(nn.Module):
             logger = logging.getLogger(__name__)
             for k in list(state_dict.keys()):
                 newk = k
-                if "sem_seg_head" in k and not k.startswith(prefix + "predictor"):
-                    newk = k.replace(prefix, prefix + "pixel_decoder.")
-                    # logger.warning(f"{k} ==> {newk}")
+                if "sem_seg_head" in k and not k.startswith(f"{prefix}predictor"):
+                    newk = k.replace(prefix, f"{prefix}pixel_decoder.")
+                                # logger.warning(f"{k} ==> {newk}")
                 if newk != k:
                     state_dict[newk] = state_dict[k]
                     del state_dict[k]
@@ -109,11 +109,10 @@ class PerPixelBaselineHead(nn.Module):
         x = self.layers(features)
         if self.training:
             return None, self.losses(x, targets)
-        else:
-            x = F.interpolate(
-                x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-            )
-            return x, {}
+        x = F.interpolate(
+            x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+        )
+        return x, {}
 
     def layers(self, features):
         x, _ = self.pixel_decoder.forward_features(features)
@@ -133,8 +132,7 @@ class PerPixelBaselineHead(nn.Module):
         loss = F.cross_entropy(
             predictions, targets, reduction="mean", ignore_index=self.ignore_value
         )
-        losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return {"loss_sem_seg": loss * self.loss_weight}
 
 
 @SEM_SEG_HEADS_REGISTRY.register()
@@ -156,8 +154,8 @@ class PerPixelBaselinePlusHead(PerPixelBaselineHead):
             logger = logging.getLogger(__name__)
             for k in list(state_dict.keys()):
                 newk = k
-                if "sem_seg_head" in k and not k.startswith(prefix + "predictor"):
-                    newk = k.replace(prefix, prefix + "pixel_decoder.")
+                if "sem_seg_head" in k and not k.startswith(f"{prefix}predictor"):
+                    newk = k.replace(prefix, f"{prefix}pixel_decoder.")
                     logger.debug(f"{k} ==> {newk}")
                 if newk != k:
                     state_dict[newk] = state_dict[k]
@@ -234,15 +232,14 @@ class PerPixelBaselinePlusHead(PerPixelBaselineHead):
         """
         x, aux_outputs = self.layers(features)
         if self.training:
-            if self.deep_supervision:
-                losses = self.losses(x, targets)
-                for i, aux_output in enumerate(aux_outputs):
-                    losses["loss_sem_seg" + f"_{i}"] = self.losses(
-                        aux_output["pred_masks"], targets
-                    )["loss_sem_seg"]
-                return None, losses
-            else:
+            if not self.deep_supervision:
                 return None, self.losses(x, targets)
+            losses = self.losses(x, targets)
+            for i, aux_output in enumerate(aux_outputs):
+                losses[f"loss_sem_seg_{i}"] = self.losses(
+                    aux_output["pred_masks"], targets
+                )["loss_sem_seg"]
+            return None, losses
         else:
             x = F.interpolate(
                 x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
@@ -290,5 +287,4 @@ class ZeroPerPixelBaselineHead(PerPixelBaselineHead):
         loss = F.cross_entropy(
             predictions, targets, reduction="mean", ignore_index=self.ignore_value
         )
-        losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return {"loss_sem_seg": loss * self.loss_weight}

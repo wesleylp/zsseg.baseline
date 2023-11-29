@@ -114,9 +114,10 @@ class ModifiedResNet(nn.Module):
         layers = [Bottleneck(self._inplanes, planes, stride, dilation=dilations[0])]
         self._inplanes = planes * Bottleneck.expansion
 
-        for i in range(1, blocks):
-            layers.append(Bottleneck(self._inplanes, planes, dilation=dilations[i]))
-
+        layers.extend(
+            Bottleneck(self._inplanes, planes, dilation=dilations[i])
+            for i in range(1, blocks)
+        )
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -190,12 +191,8 @@ class D2ModifiedResNet(ModifiedResNet, Backbone):
         Returns:
             dict[str->Tensor]: names and the corresponding features
         """
-        outputs = {}
         y = super().forward(x)
-        for k in y.keys():
-            if k in self._out_features:
-                outputs[k] = y[k]
-        return outputs
+        return {k: y[k] for k in y.keys() if k in self._out_features}
 
     def output_shape(self):
         return {

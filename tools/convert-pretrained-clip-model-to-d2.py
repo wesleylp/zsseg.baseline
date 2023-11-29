@@ -29,31 +29,31 @@ def transform(path):
         for k, v in state_dict.items()
         if k.startswith("visual_model")
     }
-    source_keys = [k for k in state_dict.keys() if "relative_coords" in k]
+    source_keys = [k for k in state_dict if "relative_coords" in k]
     for k in source_keys:
         state_dict[
             k.replace("relative_coords", "relative_position_index")
         ] = state_dict[k]
         del state_dict[k]
 
-    source_keys = [k for k in state_dict.keys() if "atten_mask_matrix" in k]
+    source_keys = [k for k in state_dict if "atten_mask_matrix" in k]
     for k in source_keys:
         state_dict[k.replace("atten_mask_matrix", "attn_mask")] = state_dict[k]
         del state_dict[k]
 
-    source_keys = [k for k in state_dict.keys() if "rel_pos_embed_table" in k]
+    source_keys = [k for k in state_dict if "rel_pos_embed_table" in k]
     for k in source_keys:
         state_dict[
             k.replace("rel_pos_embed_table", "relative_position_bias_table")
         ] = state_dict[k]
         del state_dict[k]
 
-    source_keys = [k for k in state_dict.keys() if "channel_reduction" in k]
+    source_keys = [k for k in state_dict if "channel_reduction" in k]
     for k in source_keys:
         state_dict[k.replace("channel_reduction", "reduction")] = state_dict[k]
         del state_dict[k]
     return {
-        k if k.startswith("backbone.") else "backbone." + k: v
+        k if k.startswith("backbone.") else f"backbone.{k}": v
         for k, v in state_dict.items()
     }
 

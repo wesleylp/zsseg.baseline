@@ -102,7 +102,7 @@ class MaskFormer(nn.Module):
             dec_layers = cfg.MODEL.MASK_FORMER.DEC_LAYERS
             aux_weight_dict = {}
             for i in range(dec_layers - 1):
-                aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
+                aux_weight_dict.update({f"{k}_{i}": v for k, v in weight_dict.items()})
             weight_dict.update(aux_weight_dict)
 
         losses = ["labels", "masks"]
@@ -248,5 +248,4 @@ class MaskFormer(nn.Module):
     def semantic_inference(self, mask_cls, mask_pred):
         mask_cls = F.softmax(mask_cls, dim=-1)[..., :-1]
         mask_pred = mask_pred.sigmoid()
-        semseg = torch.einsum("qc,qhw->chw", mask_cls, mask_pred)
-        return semseg
+        return torch.einsum("qc,qhw->chw", mask_cls, mask_pred)

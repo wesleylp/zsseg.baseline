@@ -83,14 +83,13 @@ class MaskFormerBinarySemanticDatasetMapper:
         meta = MetadataCatalog.get(dataset_names[0])
         ignore_label = meta.ignore_label
 
-        ret = {
+        return {
             "is_train": is_train,
             "augmentations": augs,
             "image_format": cfg.INPUT.FORMAT,
             "ignore_label": ignore_label,
             "size_divisibility": cfg.INPUT.SIZE_DIVISIBILITY,
         }
-        return ret
 
     def __call__(self, dataset_dict):
         """
@@ -116,9 +115,7 @@ class MaskFormerBinarySemanticDatasetMapper:
 
         if sem_seg_gt is None:
             raise ValueError(
-                "Cannot find 'sem_seg_file_name' for semantic segmentation dataset {}.".format(
-                    dataset_dict["file_name"]
-                )
+                f"""Cannot find 'sem_seg_file_name' for semantic segmentation dataset {dataset_dict["file_name"]}."""
             )
 
         aug_input = T.AugInput(image, sem_seg=sem_seg_gt)
@@ -169,11 +166,10 @@ class MaskFormerBinarySemanticDatasetMapper:
                 [dataset_dict["category_id"]], dtype=torch.int64
             )
 
-            masks = []
-            masks.append(sem_seg_gt == dataset_dict["category_id"])
+            masks = [sem_seg_gt == dataset_dict["category_id"]]
             if masks[0].sum() == 0:
                 return None
-            if len(masks) == 0:
+            if not masks:
                 # Some image does not have annotation (all ignored)
                 instances.gt_masks = torch.zeros(
                     (0, sem_seg_gt.shape[-2], sem_seg_gt.shape[-1])

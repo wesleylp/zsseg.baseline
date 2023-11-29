@@ -105,11 +105,9 @@ class Trainer(DefaultTrainer):
                 torch.cuda.device_count() >= comm.get_rank()
             ), "CityscapesEvaluator currently do not work with multiple machines."
             return CityscapesSemSegEvaluator(dataset_name)
-        if len(evaluator_list) == 0:
+        if not evaluator_list:
             raise NotImplementedError(
-                "no Evaluator for the dataset {} with the type {}".format(
-                    dataset_name, evaluator_type
-                )
+                f"no Evaluator for the dataset {dataset_name} with the type {evaluator_type}"
             )
         elif len(evaluator_list) == 1:
             return evaluator_list[0]
@@ -266,7 +264,7 @@ class Trainer(DefaultTrainer):
             )
         else:
             raise NotImplementedError(f"no optimizer type {optimizer_type}")
-        if not cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE == "full_model":
+        if cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE != "full_model":
             optimizer = maybe_add_gradient_clipping(cfg, optimizer)
         return optimizer
 
@@ -283,7 +281,7 @@ class Trainer(DefaultTrainer):
             for name in cfg.DATASETS.TEST
         ]
         res = cls.test(cfg, model, evaluators)
-        res = OrderedDict({k + "_TTA": v for k, v in res.items()})
+        res = OrderedDict({f"{k}_TTA": v for k, v in res.items()})
         return res
 
 

@@ -122,33 +122,30 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
         fiou = np.sum(iou[acc_valid] * class_weights[acc_valid])
         pacc = np.sum(tp) / np.sum(pos_gt)
 
-        res = {}
-        res["mIoU"] = 100 * miou
-        res["fwIoU"] = 100 * fiou
+        res = {"mIoU": 100 * miou, "fwIoU": 100 * fiou}
         for i, name in enumerate(self._class_names):
-            res["IoU-{}".format(name)] = 100 * iou[i]
+            res[f"IoU-{name}"] = 100 * iou[i]
         res["mACC"] = 100 * macc
         res["pACC"] = 100 * pacc
         for i, name in enumerate(self._class_names):
-            res["ACC-{}".format(name)] = 100 * acc[i]
+            res[f"ACC-{name}"] = 100 * acc[i]
         if self._evaluation_set is not None:
             for set_name, set_inds in self._evaluation_set.items():
-                iou_list = []
                 set_inds = np.array(set_inds, np.int)
                 mask = np.zeros((len(iou),)).astype(np.bool)
                 mask[set_inds] = 1
                 miou = np.sum(iou[mask][acc_valid[mask]]) / np.sum(iou_valid[mask])
                 pacc = np.sum(tp[mask]) / np.sum(pos_gt[mask])
-                res["mIoU-{}".format(set_name)] = 100 * miou
-                res["pAcc-{}".format(set_name)] = 100 * pacc
-                iou_list.append(miou)
+                res[f"mIoU-{set_name}"] = 100 * miou
+                res[f"pAcc-{set_name}"] = 100 * pacc
+                iou_list = [miou]
                 miou = np.sum(iou[~mask][acc_valid[~mask]]) / np.sum(iou_valid[~mask])
                 pacc = np.sum(tp[~mask]) / np.sum(pos_gt[~mask])
-                res["mIoU-un{}".format(set_name)] = 100 * miou
-                res["pAcc-un{}".format(set_name)] = 100 * pacc
+                res[f"mIoU-un{set_name}"] = 100 * miou
+                res[f"pAcc-un{set_name}"] = 100 * pacc
                 iou_list.append(miou)
-                res["hIoU-{}".format(set_name)] = (
-                    100 * len(iou_list) / sum([1 / iou for iou in iou_list])
+                res[f"hIoU-{set_name}"] = (
+                    100 * len(iou_list) / sum(1 / iou for iou in iou_list)
                 )
         if self._output_dir:
             file_path = os.path.join(self._output_dir, "sem_seg_evaluation.pth")

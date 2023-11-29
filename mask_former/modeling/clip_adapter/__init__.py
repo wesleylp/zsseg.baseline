@@ -37,11 +37,11 @@ def build_prompt_learner(cfg):
             prompt_learner.with_trainable_params = False
             log_first_n(
                 logging.INFO,
-                "Load Prompt Learner from {}".format(cfg.PROMPT_CHECKPOINT),
+                f"Load Prompt Learner from {cfg.PROMPT_CHECKPOINT}",
                 1,
             )
-            log_first_n(logging.WARN, "Missing {}".format(missing), 1)
-            log_first_n(logging.WARN, "Unexpected {}".format(unexpected), 1)
+            log_first_n(logging.WARN, f"Missing {missing}", 1)
+            log_first_n(logging.WARN, f"Unexpected {unexpected}", 1)
 
         else:
             trainable_params = [
@@ -51,11 +51,11 @@ def build_prompt_learner(cfg):
             ]
             log_first_n(
                 logging.INFO,
-                "Prompt Learner training params: {}".format(trainable_params),
+                f"Prompt Learner training params: {trainable_params}",
                 1,
             )
     else:
         raise NotImplementedError(
-            "Prompt learner {} is not supported".format(cfg.PROMPT_LEARNER)
+            f"Prompt learner {cfg.PROMPT_LEARNER} is not supported"
         )
     return prompt_learner

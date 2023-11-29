@@ -121,8 +121,9 @@ class LearnablePromptExtractor(PromptExtractor):
         return text_features
 
     def _update_noun_features(self, noun_list, clip_model):
-        left_class_names = [noun for noun in noun_list if noun not in self.noun_bucket]
-        if len(left_class_names) > 0:
+        if left_class_names := [
+            noun for noun in noun_list if noun not in self.noun_bucket
+        ]:
             with torch.no_grad():
                 tokens, name_lengths = clip.tokenize(
                     left_class_names, return_length=True
@@ -137,12 +138,7 @@ class LearnablePromptExtractor(PromptExtractor):
                     embedding[1 : 1 + length]
                     for embedding, length in zip(text_embeddings, name_lengths)
                 ]
-            self.noun_bucket.update(
-                {
-                    name: embedding
-                    for name, embedding in zip(left_class_names, text_embeddings)
-                }
-            )
+            self.noun_bucket.update(dict(zip(left_class_names, text_embeddings)))
 
     @staticmethod
     def get_text_feature(x, indices, clip_model):
@@ -176,5 +172,4 @@ class LearnablePromptExtractor(PromptExtractor):
         """
 
         repr = f"prefix_prompt:{self.n_prefix},suffix_prompt:{self.n_suffix},dimension:{self.prompt_dim}\n"
-        repr = repr + "[Normal_Init(mu=0,std=0.02)]"
-        return repr
+        return f"{repr}[Normal_Init(mu=0,std=0.02)]"

@@ -70,9 +70,7 @@ class SemanticSegmentorWithTTA(nn.Module):
                     for k, v in input.items()
                     if k not in ["image", "height", "width"]
                 }
-                log_every_n(
-                    logging.INFO, "split {} to {}".format(image_size, tile_size)
-                )
+                log_every_n(logging.INFO, f"split {image_size} to {tile_size}")
                 overlap = self.cfg.TEST.SLIDING_OVERLAP
                 stride = math.ceil(tile_size[0] * (1 - overlap))
                 tile_rows = int(

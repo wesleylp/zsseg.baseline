@@ -20,7 +20,7 @@ def main(gt_dir, map_file_save_path, ignore_index=[255], ext=".png", recursive=F
     if not os.path.isdir(gt_dir):
         warnings.warn(f"{gt_dir} is not a valid directory")
         return
-    gt_file_list = glob.glob(os.path.join(gt_dir, "*" + ext), recursive=recursive)
+    gt_file_list = glob.glob(os.path.join(gt_dir, f"*{ext}"), recursive=recursive)
     print(f"Find {len(gt_file_list)}")
     _func = functools.partial(count_cls, ignore_index=ignore_index)
     results = track_parallel_progress(_func, gt_file_list, nproc=16)
@@ -39,9 +39,7 @@ def main_ctyscapes(
     gt_file_list = list(
         chain.from_iterable(
             [
-                glob.glob(
-                    os.path.join(gt_dir, city, "*" + ext),
-                )
+                glob.glob(os.path.join(gt_dir, city, f"*{ext}"))
                 for city in cities
             ]
         )

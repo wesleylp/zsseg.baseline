@@ -127,8 +127,7 @@ class SetCriterion(nn.Module):
             loss_ce = F.cross_entropy(
                 src_logits.transpose(1, 2), target_classes, empty_weight
             )
-        losses = {"loss_ce": loss_ce}
-        return losses
+        return {"loss_ce": loss_ce}
 
     def loss_masks(self, outputs, targets, indices, num_masks):
         """Compute the losses related to the masks: the focal loss and the dice loss.
@@ -157,11 +156,10 @@ class SetCriterion(nn.Module):
 
         target_masks = target_masks.flatten(1)
         target_masks = target_masks.view(src_masks.shape)
-        losses = {
+        return {
             "loss_mask": sigmoid_focal_loss(src_masks, target_masks, num_masks),
             "loss_dice": dice_loss(src_masks, target_masks, num_masks),
         }
-        return losses
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -218,7 +216,7 @@ class SetCriterion(nn.Module):
                     l_dict = self.get_loss(
                         loss, aux_outputs, targets, indices, num_masks
                     )
-                    l_dict = {k + f"_{i}": v for k, v in l_dict.items()}
+                    l_dict = {f"{k}_{i}": v for k, v in l_dict.items()}
                     losses.update(l_dict)
 
         return losses
